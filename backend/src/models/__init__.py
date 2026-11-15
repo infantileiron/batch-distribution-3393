@@ -4,5 +4,6 @@ from .dataset import ColorBatchDataset
 from .policy import KernelPolicy
 from .study import DistributionStudy
 from .run import DistributionRun
+from .shard import ShardJob
 from .review import ShiftReview
 from .report import Report

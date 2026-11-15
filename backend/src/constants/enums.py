@@ -1,5 +1,6 @@
 ROLES=('admin','analyst','viewer')
 SCALINGS=('none','pooled_std')
 BANDWIDTHS=('fixed','pooled_median')
-RUN_STATUSES=('queued','running','completed','failed')
+RUN_STATUSES=('queued','running','completed','failed','sharded')
+SHARD_JOB_STATUSES=('collecting','completed')
 REVIEW_DECISIONS=('accepted','needs_changes')

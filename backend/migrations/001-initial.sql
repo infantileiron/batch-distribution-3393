@@ -1,3 +1,7 @@
 -- Initial schema source: src/models/*.py; metadata.create_all creates missing tables.
 -- Raw batches and label-independent policy frozen per study; immutable run/review/report IDs.
 -- sigma DOUBLE, permutation counts/seed INTEGER; calculations NumPy Float64.
+-- shard_jobs: offline lab distribution of the fixed-seed permutation stream into numbered
+-- intervals. DistributionRun.status gains 'sharded' while pieces are collected; the run is
+-- published 'completed' exactly once after full, checksum-verified coverage. Scaling and
+-- kernel width are estimated once over the full pooled sample and frozen in the package.

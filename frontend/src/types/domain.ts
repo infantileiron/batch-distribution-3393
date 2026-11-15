@@ -4,6 +4,10 @@ export type Policy={id:string;name:string;scaling:'none'|'pooled_std';bandwidth:
 export type Study={id:string;name:string;dataset_id:string;policy_id:string;snapshot:{dataset:Dataset;policy:Policy};created_at:string};
 export type Statistic={statistic:number;extreme_count:number;denominator:number;pvalue:number;permutation_statistics:number[]};
 export type Result={energy:Statistic;mmd:Statistic;B:number;seed:number;permutations:number[][];sample_sizes:number[];transform:{scaling:string;center:number[];scales:number[];constant_dimensions:number[];bandwidth:string;sigma:number;pooled_median_distance:number;label_independent:boolean};transformed_a:number[][];transformed_b:number[][];raw_a:ColorRow[];raw_b:ColorRow[];summaries:{batch:string;n:number;mean:number[];population_sd:number[]}[];policy:Policy;checksum:string;assumptions:string[];pvalues_adjusted:boolean;comparison:string};
-export type Run={id:string;study_id:string;status:'queued'|'running'|'completed'|'failed';result:Result;error:string;created_at:string};
+export type Run={id:string;study_id:string;status:'queued'|'running'|'completed'|'failed'|'sharded';result:Result;error:string;created_at:string};
+export type ShardInterval={index:number;start:number;end:number;count:number};
+export type StoredShard={checksum:string;start:number;end:number;count:number;permutations:number[][];energy_statistics:number[];mmd_statistics:number[]};
+export type ShardJob={id:string;study_id:string;run_id:string;status:'collecting'|'completed';shard_count:number;shard_size:number;intervals:ShardInterval[];received:number[];shards:Record<string,StoredShard>;result_checksum:string;error:string;created_at:string;updated_at:string};
+export type ShardCoverage={package_id:string;run_id:string;status:'collecting'|'completed';shard_count:number;received_count:number;received:number[];missing:number[];intervals:ShardInterval[];result_checksum:string;error:string;updated_at:string};
 export type Review={id:string;run_id:string;version:number;note:string;decision:'accepted'|'needs_changes';author:string;created_at:string};
 export type Report={id:string;run_id:string;review_id:string;title:string;published_by:string;created_at:string};export type Audit={id:string;actor:string;action:string;status:number;created_at:string};

@@ -41,13 +41,19 @@ docker compose exec backend python -m scripts.seed_demo
 
 `services/permutation.py::permutation_test(...)` 一次计算合并坐标、距离与核矩阵，再固定seed生成共享排列。每次重新从0..N−1的索引列表shuffle，前n个分到A、余下m个分到B；两个统计使用同一排列，保存完整索引与各自全部置换值。上尾比较 `stat_perm >= stat_obs`，`p=(1+extreme_count)/(B+1)`，公开B、seed、极端次数、分母与原始统计。Float64矩阵，math.fsum累加，计算时按合并索引排序以稳定组内顺序。
 
+### 离线分片实验室
+
+在线worker只做整批计算；需要把置换计算交给离线实验室时，在「离线分片实验室」页对冻结研究建立计算包，按编号区间（`[start,end)`，覆盖 `0..B−1` 且互不重叠）分包。计算包内置 `backend/offline/qichuan_offline_runner.py`（仅依赖标准库与NumPy），离线侧通过**确定性复放固定seed排列流**（`rng_at(seed,start,N)`：从同一种子重放前`start`次shuffle定位）只算本分片区间，因此乱序交回也能与同种子整批运行**逐位一致**：完整排列索引、两条置换统计、极端次数、分母与p值全部相等。缩放（none或合并总体SD）与核宽（合并距离中位或固定sigma）只由全体样本在分发前估计一次并随包锁定，离线侧禁止重估任何标签依赖参数。
+
+合并且发布的规则（`services/shards.py`）：分片可乱序导入；同编号同校验和的重复导入/重试幂等不重复计数；错研究/错运行、口径不符、快照校验和不符、区间重叠、编号越界、置换非完整重排、同编号异值（校验和冲突）一律拒绝并保留已收正确分片。缺片时只显示缺口编号、不发布部分结果；全部编号区间收齐后做连续覆盖校验，并在 `analysis.finalize_result` 内与同种子整批参考结果逐字段比对，任一不一致即拒绝发布，一致才一次性把关联 `DistributionRun` 置为 `completed`（运行状态新增 `sharded` 收集中态）。页面可分发计算包、导入分片、核对覆盖区间，并在收齐后导出绑定逐分片校验和的最终明细CSV；统计级CSV仍走既有报告归档。
+
 缩放有原始坐标none、合并总体SD pooled_std两种。后者只用全部样本估计一次均值/总体SD，不按标签分别估计；零SD维显式采用scale=1，中心化后为0，并记录维度。自动sigma是合并样本全部非对角欧氏距离的中位数，包含零距离；中位数0明确失败，要求改用固定正sigma，不跳过零值、不静默加epsilon。用户固定sigma同样在置换前锁定。置换期间不重估任何标签依赖参数。
 
 真实API每批4至120条完整有限读数，算法函数支持每批至少2点的手算。允许不同样本读数相同，样本ID跨两批唯一。两个检验的p**未做多重校正**，分别人工复核，不合并成自动迁移结论。p不是迁移概率；有限随机排列有分辨率与抽样变动。假设样本独立可交换；成对、时序或同缸相关读数可能不适用。原始三维欧氏坐标不是DeltaE00，缩放后的Energy单位也不同于原始读数口径。
 
 ## 实体与技术
 
-六实体 ColorBatchDataset、KernelPolicy、DistributionStudy、DistributionRun、ShiftReview、Report，贯穿表/model/schema/service/route、前端API/store/page。研究冻结原始批次及口径；运行保存原始读数、变换参数、统计、完整排列与分布；每次复核新增不可变版本。归档绑定最新接受复核ID，后续新复核不改变旧CSV。
+六实体 ColorBatchDataset、KernelPolicy、DistributionStudy、DistributionRun、ShiftReview、Report，贯穿表/model/schema/service/route、前端API/store/page。研究冻结原始批次及口径；运行保存原始读数、变换参数、统计、完整排列与分布；每次复核新增不可变版本。归档绑定最新接受复核ID，后续新复核不改变旧CSV。离线分片由 ShardJob（`shard_jobs` 表）承载：一个计算包对应一个 `sharded` 态 DistributionRun，记录编号区间清单、已收编号、逐分片校验和与结果校验和，收齐发布后该运行与整批运行结构完全一致，可正常复核与归档。
 
 | 部分 | 技术 |
 |---|---|
